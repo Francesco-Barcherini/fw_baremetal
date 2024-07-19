@@ -1,0 +1,8 @@
+
+import os
+
+Import('env')
+
+env.Append(CPPPATH  = [Dir('mmu_Armv8_A/').abspath])
+
+env.Append(LIBPATH = Dir('output').abspath)

@@ -1,0 +1,7 @@
+# Ignore object files, dump and binary in software partitions folder
+basic-fw-src/*.o
+basic-fw-main/*.o
+basic-fw-main/*.bin
+basic-fw-main/*.elf
+basic-fw-main/*.dump
+basic-fw-main/*.dblite

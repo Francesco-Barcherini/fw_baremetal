@@ -1,0 +1,21 @@
+Import('env')
+
+common_src = [
+	'cbfw_printf.c',
+	'gen_timer.c',
+	'serial.c',
+	'start.S',
+	'weak_handlers.c',
+	'gicv3.c',
+]
+
+for src in common_src:
+	env.Append(SRCS = Glob(src))
+
+env.Append(CPPPATH = [Dir('.').abspath])
+
+# Add here additional defines that you want to find in the code
+additional_defines = [ ]
+
+for s in additional_defines:
+	env.Append(CCFLAGS = "-D%s" % s)

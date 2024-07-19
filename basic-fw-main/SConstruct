@@ -1,0 +1,211 @@
+
+# ---------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------
+# Import section
+# ---------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------
+
+import os
+import atexit
+
+# ---------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------
+# Utility functions
+# ---------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------
+
+def import_obj(lib_path_folder, objs_name, objs_path):
+    for lib in objs_name:
+        lib_path = lib_path_folder + '/' + lib
+
+        if os.path.isfile(lib_path) is False:
+            print("|<>| ERROR: " + lib_path + ' does not exist. Build external library first!')
+            Exit(2)
+
+        objs_path.append(lib_path)
+
+# ---------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------
+# Environments initialization
+# ---------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------
+
+# List of guest libraries to be imported as objects
+importing_guest_lib = ['libmmu_Armv8_A.a']
+
+# This force the decider to recompile the file if has been modified after the last compilation and not using the MD5
+Decider('timestamp-newer')
+
+# Create a building Environment
+env = Environment()
+
+env.Replace(CC      = os.environ['CROSS_COMPILE'] + 'gcc')
+env.Replace(AS      = os.environ['CROSS_COMPILE'] + 'as')
+env.Replace(LINK    = os.environ['CROSS_COMPILE'] + 'ld')
+env.Replace(LD    = os.environ['CROSS_COMPILE'] + 'ld')
+env.Replace(AR      = os.environ['CROSS_COMPILE'] + 'ar')
+env.Replace(RANLIB  = os.environ['CROSS_COMPILE'] + 'ranlib')
+env.Replace(NM      = os.environ['CROSS_COMPILE'] + 'nm')
+env.Replace(OBJCOPY = os.environ['CROSS_COMPILE'] + 'objcopy')
+env.Replace(OBJDUMP = os.environ['CROSS_COMPILE'] + 'objdump')
+
+# Set CC Flags
+env.Append(CCFLAGS      = " -march=armv8-a+nofp")
+env.Append(CCFLAGS      = ' -Wall -fno-common -O0 -g3 -fno-omit-frame-pointer -mstrict-align ')
+env.Append(CCFLAGS      = ' -nostdlib -nostartfiles -ffreestanding')
+
+# Set AS Flags
+env.Append(ASFLAGS      = " -march=armv8-a+nofp")
+env.Append(ASFLAGS      = ' -Wall -fno-common -O0 -g3 -fno-omit-frame-pointer -mstrict-align ')
+env.Append(ASFLAGS      = ' -nostdlib -nostartfiles -ffreestanding')
+
+# Specify the linker flag and script
+env.Replace(LINKFLAGS   = ' --build-id=none -nostartfiles')
+env.Append(LINKFLAGS    = ' -T kernel.ld')
+
+# Update string for main commands
+env['CCCOMSTR']     = "|<>| Compiling $SOURCE"
+env['SHCCCOMSTR']   = "|<>| Compiling shared object $SOURCE"
+env['ASCOMSTR']     = "|<>| Assembling $SOURCE"
+env['ASPPCOMSTR']   = "|<>| Assembling $SOURCE"
+env['LINKCOMSTR']   = "|<>| Linking $TARGET"
+env['ARCOMSTR']     = "|<>| Archiving $TARGET"
+env['RANLIBCOMSTR'] = "|<>| Updating archive $TARGET"
+
+# ---------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------
+# Retrieving configuration and initialize directories tree
+# ---------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------
+
+env.Replace(ARCH        = 'arm64')
+env.Append(CCFLAGS      = " -DRENESAS_RCARV4H")
+
+if env.GetOption('clean'):
+    print("\n|^| Cleaning the Guest for Renesas RCAR V4H Board\n")
+else:
+    print("\n|^| Building the Guest for Renesas RCAR V4H Board\n")
+
+# ---------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------
+# Retrieving sub-script for updating source files and additional header files
+# ---------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------
+
+Export('env')
+
+# Call the script of the common code
+base_sconscript = SConscript('../basic-fw-src/SConscript')
+
+# Include lib
+lib_sconscript = SConscript('../libs/SConscript_include')
+
+# External objects list
+external_libs = []
+
+import_obj(env['LIBPATH'], importing_guest_lib, external_libs)
+
+env.Append(SRCS     = Split(Glob('*.c')))
+env.Append(SRCS     = Split(Glob('*.S')))
+
+# ---------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------
+# Guest Compilation
+# ---------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------
+
+# Compile all source files
+guest_objs = env.StaticObject(
+    source  = env['SRCS'],
+    ASFLAGS = env['CCFLAGS'],
+    CFLAGS  = env['CCFLAGS'])
+
+env.Depends(guest_objs, base_sconscript)
+
+# ---------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------
+# Building final executable
+# ---------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------
+
+# Link and generate elf file
+final_elf = env.Program(
+    target = 'guest.elf',
+    source = [guest_objs, external_libs])
+
+# Generate binary from elf
+final_binary = env.Command( 
+    target = 'guest.bin',
+    source = final_elf,
+    action = Action("%s -S -O binary $SOURCE $TARGET" % env['OBJCOPY'],
+                    "|<>| Extracting $TARGET from $SOURCE"))
+
+# ---------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------
+# Disassemblying the final executable
+# ---------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------
+
+final_disassembly = env.Command(
+    target = 'guest.dump',
+    source = final_elf,
+    action = Action("%s -S $SOURCE > $TARGET" % env['OBJDUMP'],
+                    "|<>| Disassemblying the final executable"))
+
+# ---------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------
+# End of script -------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------
+
+
+def bf_to_str(bf):
+    """Convert an element of GetBuildFailures() to a string
+    in a useful way."""
+    import SCons.Errors
+    if bf is None: # unknown targets product None in list
+        return '(unknown tgt)'
+    elif isinstance(bf, SCons.Errors.StopError):
+        return str(bf)
+    elif bf.node:
+        return str(bf.node) + ': ' + bf.errstr
+    elif bf.filename:
+        return bf.filename + ': ' + bf.errstr
+    return 'unknown failure: ' + bf.errstr
+import atexit
+
+def build_status():
+    """Convert the build status to a 2-tuple, (status, msg)."""
+    from SCons.Script import GetBuildFailures
+    bf = GetBuildFailures()
+    if bf:
+        # bf is normally a list of build failures; if an element is None,
+        # it's because of a target that scons doesn't know anything about.
+        status = 'failed'
+        failures_message = "\n".join(["Failed building %s" % bf_to_str(x)
+                        for x in bf if x is not None])
+    else:
+        # if bf is None, the build completed successfully.
+        status = 'ok'
+        failures_message = ''
+    return (status, failures_message)
+
+def display_build_status():
+    """Display the build status.  Called by atexit.
+    Here you could do all kinds of complicated things."""
+    status, failures_message = build_status()
+    if status == 'failed':
+        print("\n\n------------------------------------")
+        print("|^| Build failed!!!!")
+        print("------------------------------------\n")
+    elif status == 'ok':
+        print("\n\n------------------------------------")
+        print("|^| Build succeeded.")
+        print("------------------------------------\n")
+    print(failures_message)
+
+atexit.register(display_build_status)
