@@ -1,10 +1,10 @@
 Import('env')
 
 common_src = [
+	'start.S',
 	'cbfw_printf.c',
 	'gen_timer.c',
 	'serial.c',
-	'start.S',
 	'weak_handlers.c',
 	'gicv3.c',
 ]

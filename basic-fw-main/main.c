@@ -83,7 +83,7 @@ void main(unsigned int REG, uint64_t sp)
     asm volatile("mrs %0, sctlr_el1" : "=r" (valReg));
     asm volatile("msr sctlr_el1, %0" : : "r" (valReg|0x04));
 
-    srand(gen_timer_get_ptimestamp());
+    //srand(gen_timer_get_ptimestamp());
 
     /* Performance Monitors Control Register: reset counters */
     uint64_t val=0;

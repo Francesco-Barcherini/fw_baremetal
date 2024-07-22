@@ -52,25 +52,25 @@ env.Replace(OBJDUMP = os.environ['CROSS_COMPILE'] + 'objdump')
 # Set CC Flags
 env.Append(CCFLAGS      = " -march=armv8-a+nofp")
 env.Append(CCFLAGS      = ' -Wall -fno-common -O0 -g3 -fno-omit-frame-pointer -mstrict-align ')
-env.Append(CCFLAGS      = ' -nostdlib -nostartfiles -ffreestanding')
+env.Append(CCFLAGS      = ' -nostdlib -nostartfiles -ffreestanding -fPIC')
 
 # Set AS Flags
 env.Append(ASFLAGS      = " -march=armv8-a+nofp")
 env.Append(ASFLAGS      = ' -Wall -fno-common -O0 -g3 -fno-omit-frame-pointer -mstrict-align ')
-env.Append(ASFLAGS      = ' -nostdlib -nostartfiles -ffreestanding')
+env.Append(ASFLAGS      = ' -nostdlib -nostartfiles -ffreestanding -fPIC')
 
 # Specify the linker flag and script
 env.Replace(LINKFLAGS   = ' --build-id=none -nostartfiles')
 env.Append(LINKFLAGS    = ' -T kernel.ld')
 
 # Update string for main commands
-env['CCCOMSTR']     = "|<>| Compiling $SOURCE"
-env['SHCCCOMSTR']   = "|<>| Compiling shared object $SOURCE"
-env['ASCOMSTR']     = "|<>| Assembling $SOURCE"
-env['ASPPCOMSTR']   = "|<>| Assembling $SOURCE"
-env['LINKCOMSTR']   = "|<>| Linking $TARGET"
-env['ARCOMSTR']     = "|<>| Archiving $TARGET"
-env['RANLIBCOMSTR'] = "|<>| Updating archive $TARGET"
+# env['CCCOMSTR']     = "|<>| Compiling $SOURCE"
+# env['SHCCCOMSTR']   = "|<>| Compiling shared object $SOURCE"
+# env['ASCOMSTR']     = "|<>| Assembling $SOURCE"
+# env['ASPPCOMSTR']   = "|<>| Assembling $SOURCE"
+# env['LINKCOMSTR']   = "|<>| Linking $TARGET"
+# env['ARCOMSTR']     = "|<>| Archiving $TARGET"
+# env['RANLIBCOMSTR'] = "|<>| Updating archive $TARGET"
 
 # ---------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------
@@ -114,6 +114,8 @@ env.Append(SRCS     = Split(Glob('*.S')))
 # ---------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------
 
+env['LINKCOM'] = env['LINKCOM'] = "$LINK $LINKFLAGS $SOURCES $_LIBDIRFLAGS $_LIBFLAGS -o $TARGET"
+
 # Compile all source files
 guest_objs = env.StaticObject(
     source  = env['SRCS'],
@@ -138,7 +140,7 @@ final_binary = env.Command(
     target = 'guest.bin',
     source = final_elf,
     action = Action("%s -S -O binary $SOURCE $TARGET" % env['OBJCOPY'],
-                    "|<>| Extracting $TARGET from $SOURCE"))
+                    ))
 
 # ---------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------
