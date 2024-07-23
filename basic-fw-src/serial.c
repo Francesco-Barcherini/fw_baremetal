@@ -12,9 +12,9 @@
 #include "serial.h"
 #include <inttypes.h>
 
-#define IS_HSCIF 1
+#define IS_HSCIF 0
 #define BAUDRATE 921600
-#define CLK_RATE 0xfe502a
+#define CLK_RATE 0x16E3600
 
 static uint8_t uart_rcar_read_8(uint32_t offs)
 {
