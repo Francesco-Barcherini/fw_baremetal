@@ -65,6 +65,8 @@ void secondary_cores_main(void){
 
 void main(unsigned int REG, uint64_t sp)
 {
+    uart_rcar_configure();
+    
     bprintf("Hello. I am the Guest 1\n");
 
     // bprintf("Guest: initializing MMU\n");

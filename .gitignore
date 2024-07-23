@@ -6,3 +6,4 @@ basic-fw-main/*.elf
 basic-fw-main/*.dump
 basic-fw-main/*.dblite
 basic-fw-main/startfiles
+*.pdf

@@ -13,8 +13,8 @@
 
 /* UART */
 
-#define UART_BASE_REG					(0xFF000000)
-#define UART_SIZE						(0x1000)
+#define UART_BASE_REG					(uintptr_t)(0xE6540000)
+#define UART_SIZE						(0x60)
 
 /* GIC Macros */
 
