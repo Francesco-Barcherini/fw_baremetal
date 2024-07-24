@@ -12,7 +12,7 @@
 #define __REG_H__
 
 /* UART */
-
+//hscif0
 #define UART_BASE_REG					(uintptr_t)(0xE6540000)
 #define UART_SIZE						(0x60)
 

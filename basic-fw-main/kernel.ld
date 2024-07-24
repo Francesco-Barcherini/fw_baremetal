@@ -5,7 +5,7 @@ ENTRY(__start)
 
 SECTIONS
 {
-	. = 0x0;
+	. = 0x48000000;
 	_bfw_start_point = .;
 	.entry : {*(.entry) }
 	.text : { *(.text) }

@@ -65,9 +65,14 @@ void secondary_cores_main(void){
 
 void main(unsigned int REG, uint64_t sp)
 {
-    uart_rcar_configure();
+    //uart_rcar_configure();
     
     bprintf("Hello. I am the Guest 1\n");
+
+    // print current exception level
+    uint32_t el;
+    asm volatile("mrs %0, CurrentEL" : "=r" (el));
+    bprintf("Current EL: %d\n", el >> 2);
 
     // bprintf("Guest: initializing MMU\n");
     // setup_mmu();

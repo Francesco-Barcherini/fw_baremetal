@@ -12,9 +12,10 @@
 #include "serial.h"
 #include <inttypes.h>
 
-#define IS_HSCIF 0
-#define BAUDRATE 921600
-#define CLK_RATE 0x16E3600
+#define IS_HSCIF 	1
+#define BAUDRATE 	921600
+#define CLK_RATE 	266660000
+#define SR 			(HSSRR_SRCYC_DEF_VAL + 1)
 
 static uint8_t uart_rcar_read_8(uint32_t offs)
 {
@@ -41,7 +42,8 @@ static void uart_rcar_set_baudrate(uint32_t baud_rate)
 	uint8_t reg_val;
 
 	if (IS_HSCIF) {
-		reg_val = CLK_RATE / (2 * (HSSRR_SRCYC_DEF_VAL + 1) * baud_rate) - 1;
+		//reg_val = CLK_RATE / (2 * (HSSRR_SRCYC_DEF_VAL + 1) * baud_rate) - 1;
+		reg_val = (CLK_RATE / (2 * SR * BAUDRATE) - 1);
 	} else {
 		reg_val = ((CLK_RATE + 16 * baud_rate) / (32 * baud_rate) - 1);
 	}
@@ -84,7 +86,10 @@ static void uart_rcar_poll_out( unsigned char out_char)
 
 	uart_rcar_write_8(SCFTDR, out_char);
 
-	reg_val = uart_rcar_read_16(SCFSR);
+	/* Wait for end of transmition */
+	while (!(uart_rcar_read_16(SCFSR) & SCFSR_TEND)) {
+	}
+
 	reg_val &= ~(SCFSR_TDFE | SCFSR_TEND);
 	uart_rcar_write_16(SCFSR, reg_val);
 
@@ -122,7 +127,7 @@ int uart_rcar_configure()
 
 	/* Serial Configuration (8N1) & Clock divider selection */
 	reg_val = uart_rcar_read_16(SCSMR);
-	reg_val &= ~(SCSMR_C_A | SCSMR_CHR | SCSMR_PE | SCSMR_O_E | SCSMR_STOP |
+	reg_val &= ~(/*SCSMR_C_A |*/ SCSMR_CHR | SCSMR_PE | SCSMR_O_E | SCSMR_STOP |
 		     SCSMR_CKS1 | SCSMR_CKS0);
 	uart_rcar_write_16(SCSMR, reg_val);
 
@@ -211,9 +216,9 @@ void _itoa(char* buffer, int base, uint64_t value)
 int put(const char str)
 {
   if(0xA == str){
-    uart_rcar_write_8(SCFTDR, 0xD);
+    uart_rcar_poll_out(0xD);
   }
-  uart_rcar_write_8(SCFTDR, str);
+  uart_rcar_poll_out(str);
   return 0;
 }
 
